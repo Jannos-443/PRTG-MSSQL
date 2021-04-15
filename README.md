@@ -52,7 +52,7 @@ You can either use the **parameter $IgnorePattern** to exclude a database on sen
 By default, the $IgnoreScript varialbe looks like this:
 
 ```powershell
-$IgnoreScript = '^(VMTest123|TestExcludeWildcard.*)$'
+$IgnoreScript = '^(Test-SQL-123|Test-SQL-12345.*)$' 
 ```
 
 For more information about regular expressions in PowerShell, visit [Microsoft Docs](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_regular_expressions).
