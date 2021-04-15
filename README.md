@@ -7,7 +7,7 @@ Jannos-443
 
 ## Project Details
 
-Checks SQL Backup, Log Backup and Differential Backup Age
+Checks SQL Backup, Log Backup and Differential Backup Age for every database!
 
 | Parameter | Default Value |
 | --- | --- |
