@@ -1,4 +1,4 @@
-﻿<#       
+<#       
     .SYNOPSIS
     Checks SQL Backup, Log Backup and Differential Backup Age
 
@@ -83,7 +83,7 @@ $ErrorActionPreference = "Stop"
 trap{
     Write-Output "<prtg>"
     Write-Output "<error>1</error>"
-    Write-Output "<text>$($_.ToString() - $($_.ScriptStackTrace))</text>"
+    Write-Output "<text>$($_.ToString())</text>"
     Write-Output "</prtg>"
     if($server -ne $null)
         {
@@ -120,7 +120,11 @@ Try{
     #SQL Auth
     if(($username -ne "") -and ($password -ne ""))
         {
-        $SrvConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection        $SrvConn.ServerInstance = $sqlInstanz        $SrvConn.LoginSecure = $false        $SrvConn.Login = $username        $SrvConn.Password = $password
+        $SrvConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
+        $SrvConn.ServerInstance = $sqlInstanz
+        $SrvConn.LoginSecure = $false
+        $SrvConn.Login = $username
+        $SrvConn.Password = $password
         $server = new-object Microsoft.SqlServer.Management.SMO.Server($SrvConn)
         }
     #Windows Auth (running User)  
@@ -141,6 +145,8 @@ catch{
     Write-Output "</prtg>"
     Exit
     }
+
+
 
 
 #hardcoded list that applies to all hosts
@@ -186,6 +192,64 @@ $CurrentTime = Get-Date
 
 foreach($database in $databases)
     {
+    #Region: Backup
+    if($BackupAge)
+        {
+        $Time = [math]::Round((($CurrentTime - $database.LastBackupDate).TotalHours),2)
+        $TimeOutput = $database.LastBackupDate.ToString("dd.MM.yyyy-HH:mm")
+        if($database.LastBackupDate -eq (Get-Date(0)))
+            {
+            $Backup_Error += 1
+            $Backup_Text += "$($database.Name) never backed up; "
+            }
+        elseif($Time -gt $BackupAgeError)
+            {
+            $Backup_Error += 1
+            $Backup_Text += "$($database.Name) $($TimeOutput); "
+            #$Backup_Text += "$($database.Name) $($Time)h ago; "
+            }
+        elseif($Time -gt $BackupAgeWarning)
+            {
+            $Backup_Warning += 1
+            $Backup_Text += "$($database.Name) $($TimeOutput); "
+            #$Backup_Text += "$($database.Name) $($Time)h ago; "
+            }
+        else
+            {
+            $Backup_Ok += 1
+            }
+        }
+    #End Region
+
+    #Region: differential Backup       
+    if($DifferentialAge)
+        {
+        $Time = [math]::Round((($CurrentTime - $database.LastDifferentialBackupDate).TotalHours),2)
+        $TimeOutput = $database.LastDifferentialBackupDate.ToString("dd.MM.yyyy-HH:mm")
+        if($database.LastDifferentialBackupDate -eq (Get-Date(0)))
+            {
+            $Diff_Error += 1
+            $Diff_Text += "$($database.Name) never backed up; "
+            }
+        elseif($Time -gt $DiffAgeError)
+            {
+            $Diff_Error += 1
+            $Diff_Text += "$($database.Name) $($TimeOutput); "
+            #$Diff_Text += "$($database.Name) $($Time)h ago; "
+            }
+        elseif($Time -gt $DiffAgeWarning)
+            {
+            $Diff_Warning += 1
+            $Diff_Text += "$($database.Name) $($TimeOutput); "
+            #$Diff_Text += "$($database.Name) $($Time)h ago; "
+            }
+        else
+            {
+            $Diff_Ok += 1
+            }
+        }
+    #End Region
+
     #Check Recovery Model
     if($database.RecoveryModel -eq "Simple")
         {
@@ -196,65 +260,7 @@ foreach($database in $databases)
     if($database.RecoveryModel -eq "Full")
         {
         $RecoveryModelFull += 1
-
-        #Region: Backup
-        if($BackupAge)
-            {
-            $Time = [math]::Round((($CurrentTime - $database.LastBackupDate).TotalHours),2)
-            $TimeOutput = $database.LastBackupDate.ToString("dd.MM.yyyy-HH:mm")
-            if($database.LastBackupDate -eq (Get-Date(0)))
-                {
-                $Backup_Error += 1
-                $Backup_Text += "$($database.Name) never backed up; "
-                }
-            elseif($Time -gt $BackupAgeError)
-                {
-                $Backup_Error += 1
-                $Backup_Text += "$($database.Name) $($TimeOutput); "
-                #$Backup_Text += "$($database.Name) $($Time)h ago; "
-                }
-            elseif($Time -gt $BackupAgeWarning)
-                {
-                $Backup_Warning += 1
-                $Backup_Text += "$($database.Name) $($TimeOutput); "
-                #$Backup_Text += "$($database.Name) $($Time)h ago; "
-                }
-            else
-                {
-                $Backup_Ok += 1
-                }
-            }
-        #End Region
-        
-        #Region: differential Backup       
-        if($DifferentialAge)
-            {
-            $Time = [math]::Round((($CurrentTime - $database.LastDifferentialBackupDate).TotalHours),2)
-            $TimeOutput = $database.LastDifferentialBackupDate.ToString("dd.MM.yyyy-HH:mm")
-            if($database.LastDifferentialBackupDate -eq (Get-Date(0)))
-                {
-                $Diff_Error += 1
-                $Diff_Text += "$($database.Name) never backed up; "
-                }
-            elseif($Time -gt $DiffAgeError)
-                {
-                $Diff_Error += 1
-                $Diff_Text += "$($database.Name) $($TimeOutput); "
-                #$Diff_Text += "$($database.Name) $($Time)h ago; "
-                }
-            elseif($Time -gt $DiffAgeWarning)
-                {
-                $Diff_Warning += 1
-                $Diff_Text += "$($database.Name) $($TimeOutput); "
-                #$Diff_Text += "$($database.Name) $($Time)h ago; "
-                }
-            else
-                {
-                $Diff_Ok += 1
-                }
-            }
-        #End Region
-
+                
         #Region: Log Backup
         if($LogAge)
             {
@@ -303,7 +309,7 @@ if(($Backup_Error -eq 0) -and ($Diff_Error -eq 0) -and ($Log_Error -eq 0) -and (
 
     if($BackupAge)
         {
-        $Ok_Text += "no Backups older $($BackupAgeWarning)h (Warning) or $($BackupAgeError)h(Error); "
+        $Ok_Text += "no Backups older $($BackupAgeWarning)h (Warning) or $($BackupAgeError)h (Error); "
         }
     if($LogAge)
         {
