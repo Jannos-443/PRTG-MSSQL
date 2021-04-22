@@ -80,10 +80,14 @@ param(
 
 #catch all unhadled errors
 $ErrorActionPreference = "Stop"
+
 trap{
+    $Output = "line:$($_.InvocationInfo.ScriptLineNumber.ToString()) char:$($_.InvocationInfo.OffsetInLine.ToString()) --- message: $($_.Exception.Message.ToString()) --- line: $($_.InvocationInfo.Line.ToString()) "
+    $Output = $Output.Replace("<","")
+    $Output = $Output.Replace(">","")
     Write-Output "<prtg>"
     Write-Output "<error>1</error>"
-    Write-Output "<text>$($_.ToString())</text>"
+    Write-Output "<text>$Output</text>"
     Write-Output "</prtg>"
     if($server -ne $null)
         {
