@@ -1,4 +1,4 @@
-<#       
+﻿<#       
     .SYNOPSIS
     Checks SQL Backup, Log Backup and Differential Backup Age
 
@@ -154,7 +154,7 @@ catch{
 
 
 #hardcoded list that applies to all hosts
-$IgnoreScript = '^(Test-SQL-123|Test-SQL-12345)$' 
+$IgnoreScript = '^(Test-SQL-123|Test-SQL-12345|tempdb)$' 
 
 
 #Remove Ignored
@@ -363,14 +363,14 @@ if($BackupAge)
         <value>$Backup_Warning</value>
         <unit>Count</unit>
         <limitmode>1</limitmode>
-        <LimitMaxWarning>1</LimitMaxWarning>
+        <LimitMaxWarning>0</LimitMaxWarning>
         </result>
         <result>
         <channel>Backups Error</channel>
         <value>$Backup_Error</value>
         <unit>Count</unit>
         <limitmode>1</limitmode>
-        <LimitMaxError>1</LimitMaxError>
+        <LimitMaxError>0</LimitMaxError>
         </result>"
     }
 
@@ -386,14 +386,14 @@ if($DiffAge)
         <value>$Diff_Warning</value>
         <unit>Count</unit>
         <limitmode>1</limitmode>
-        <LimitMaxWarning>1</LimitMaxWarning>
+        <LimitMaxWarning>0</LimitMaxWarning>
         </result>
         <result>
         <channel>Diff Backups Error</channel>
         <value>$Diff_Error</value>
         <unit>Count</unit>
         <limitmode>1</limitmode>
-        <LimitMaxError>1</LimitMaxError>
+        <LimitMaxError>0</LimitMaxError>
         </result>"
     }  
     
@@ -409,14 +409,14 @@ if($LogAge)
         <value>$Log_Warning</value>
         <unit>Count</unit>
         <limitmode>1</limitmode>
-        <LimitMaxWarning>1</LimitMaxWarning>
+        <LimitMaxWarning>0</LimitMaxWarning>
         </result>
         <result>
         <channel>Log Backups Error</channel>
         <value>$Log_Error</value>
         <unit>Count</unit>
         <limitmode>1</limitmode>
-        <LimitMaxError>1</LimitMaxError>
+        <LimitMaxError>0</LimitMaxError>
         </result>"
     }
 
