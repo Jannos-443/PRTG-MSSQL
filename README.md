@@ -57,6 +57,7 @@ SQL Backup Log Monitoring : `-sqlInstanz "SQL-Test" -LogAge -BackupAge`
 ![PRTG-SQL-BackupAge](media/backup_und_log.png)
 
 Error:
+
 ![PRTG-SQL-BackupAge](media/error.png)
 
 
