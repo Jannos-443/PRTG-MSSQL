@@ -38,7 +38,7 @@ Checks SQL Backup, Log Backup and Differential Backup Age for every database!
 
    | Settings | Value |
    | --- | --- |
-   | EXE/Script | PRTG-SQL-BackupAge.ps1 |
+   | EXE/Script Advanced | PRTG-SQL-BackupAge.ps1 |
    | Parameters | `-sqlInstanz "SQL-Test" -IgnorePattern '(SQL-ABC)'` |
    | Scanning Interval | 10 minutes |
 
