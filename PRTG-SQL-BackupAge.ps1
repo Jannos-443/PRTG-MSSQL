@@ -173,16 +173,16 @@ $IgnoreScript = '^(Test-SQL-123|Test-SQL-12345|tempdb)$'
 
 #Remove Ignored
 if ($IgnorePattern -ne "") {
-    $databases = $databases | where {$_.Name -notmatch $IgnorePattern}  
+    $databases = $databases | Where-Object {$_.Name -notmatch $IgnorePattern}  
 }
 
 if ($IgnoreScript -ne "") {
-    $databases = $databases | where {$_.Name -notmatch $IgnoreScript}  
+    $databases = $databases | Where-Object {$_.Name -notmatch $IgnoreScript}  
 }
 
 
 #Database(s) found?
-if(($databases -eq 0) -or ($databases -eq $null))
+if(($databases -eq 0) -or ($null -eq $databases))
     {
     Write-Output "<prtg>"
     Write-Output " <error>1</error>"
