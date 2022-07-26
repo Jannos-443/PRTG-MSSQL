@@ -1,15 +1,13 @@
-﻿<#       
+﻿<#
     .SYNOPSIS
     Checks SQL Backup, Log Backup and Differential Backup Age
 
     .DESCRIPTION
     Using Powershell to check the Last Backup Date from every Database in a specific SQL Instanz
-    Exceptions can be made within this script by changing the variable $IgnoreScript. This way, the change applies to all PRTG sensors 
-    based on this script. If exceptions have to be made on a per sensor level, the script parameter $IgnorePattern can be used.
-    
+
     Copy this script to the PRTG probe EXEXML scripts folder (${env:ProgramFiles(x86)}\PRTG Network Monitor\Custom Sensors\EXEXML)
     and create a "EXE/Script Advanced" sensor. Choose this script from the dropdown and set at least:
- 
+
     .PARAMETER sqlInstanz
     FQDN or IP of the SQL Instanz
 
@@ -21,7 +19,7 @@
 
     .PARAMETER BackupAge
     disables or enables Backup Age Monitoring (default = enabled)
-    
+
     .PARAMETER BackupAgeWarning
     Warning Limit in hours for Backups
 
@@ -30,7 +28,7 @@
 
     .PARAMETER LogAge
     disables or enables Log Backup Age Monitoring (default = enabled)
-    
+
     .PARAMETER LogAgeWarning
     Warning Limit in hours for Log Backups
 
@@ -39,22 +37,25 @@
 
     .PARAMETER DiffAge
     disables or enables differential Backup Age Monitoring (default = disabled)
-    
+
     .PARAMETER DiffAgeWarning
     Warning Limit in hours for differential Backups
 
     .PARAMETER DiffAgeError
     Error Limit in hours for differential Backups
 
-    .PARAMETER IgnorePattern
-    Regular expression to describe the Database Name for Example "Test-SQL" to exclude this Database.
+    .PARAMETER ExcludeDB
+    Regular expression to describe the Databases to exclude
     Example: ^(Test123)$ excludes Test123
     Example2: ^(Test123.*|TestTest123)$ excludes TestTest123, Test123, Test123456 and more.
     #https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_regular_expressions?view=powershell-7.1
-    
+
+    .PARAMETER IncludeDB
+    Regular expression to describe the Databases to include
+
     .EXAMPLE
     Sample call from PRTG EXE/Script Advanced
-    PRTG-SQL-BackupAge.ps1 -sqlInstanz "SQL-Test" -BackupAgeWarning 56 -BackupAgeError 58 -IgnorePattern '(Test123SQL|SQL-ABC)'
+    PRTG-SQL-BackupAge.ps1 -sqlInstanz "SQL-Test" -BackupAgeWarning 56 -BackupAgeError 58 -ExcludeDB '(Test123SQL|SQL-ABC)'
 
     Author:  Jannos-443
     https://github.com/Jannos-443/PRTG-SQL-BackupAge
@@ -75,45 +76,43 @@ param(
     [switch]$DiffAge,
     [int]$DiffAgeWarning = '24',
     [int]$DiffAgeError = '27',
-    [string]$IgnorePattern = ''
+    [string]$IncludeDB = '',
+    [string]$ExcludeDB = ''
 )
 
 #catch all unhadled errors
 $ErrorActionPreference = "Stop"
 
-trap{
+trap {
     $Output = "line:$($_.InvocationInfo.ScriptLineNumber.ToString()) char:$($_.InvocationInfo.OffsetInLine.ToString()) --- message: $($_.Exception.Message.ToString()) --- line: $($_.InvocationInfo.Line.ToString()) "
-    $Output = $Output.Replace("<","")
-    $Output = $Output.Replace(">","")
-    $Output = $Output.Replace("#","")
+    $Output = $Output.Replace("<", "")
+    $Output = $Output.Replace(">", "")
+    $Output = $Output.Replace("#", "")
     Write-Output "<prtg>"
     Write-Output "<error>1</error>"
     Write-Output "<text>$Output</text>"
     Write-Output "</prtg>"
-    if($server -ne $null)
-        {
+    if ($server -ne $null) {
         $server.ConnectionContext.Disconnect()
-        }
+    }
     Exit
 }
 
 
 #Target specified?
-if($sqlInstanz -eq "")
-    {
+if ($sqlInstanz -eq "") {
     Write-Output "<prtg>"
     Write-Output "<error>1</error>"
     Write-Output "<text>No SQLInstanz specified</text>"
     Write-Output "</prtg>"
     Exit
-    }
+}
 
 #Import sqlServer Module
-Try{
+Try {
     Import-Module SQLServer
 }
-catch
-{
+catch {
     Write-Output "<prtg>"
     Write-Output "<error>1</error>"
     Write-Output "<text>Error Loading SQLServer Powershell Module, please install Module First</text>"
@@ -122,74 +121,79 @@ catch
 }
 
 #Channels?
-if(($BackupAge) -or ($LogAge) -or ($DiffAge))
-    {
+if (($BackupAge) -or ($LogAge) -or ($DiffAge)) {
 
-    }
+}
 
-else
-    {
+else {
     $BackupAge = $true
     $LogAge = $true
-    }
+}
 
 #Connect SQL and Get Databases
-Try{
+Try {
     #SQL Auth
-    if(($username -ne "") -and ($password -ne ""))
-        {
+    if (($username -ne "") -and ($password -ne "")) {
         $SrvConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
         $SrvConn.ServerInstance = $sqlInstanz
         $SrvConn.LoginSecure = $false
         $SrvConn.Login = $username
         $SrvConn.Password = $password
         $server = new-object Microsoft.SqlServer.Management.SMO.Server($SrvConn)
-        }
-    #Windows Auth (running User)  
-    else
-        {
+    }
+    #Windows Auth (running User)
+    else {
         $server = new-object "Microsoft.SqlServer.Management.Smo.Server" $sqlInstanz
-        } 
+    }
 
     #Get Databases
     $databases = $server.Databases
 
-    }
+}
 
-catch{
+catch {
     Write-Output "<prtg>"
     Write-Output " <error>1</error>"
     Write-Output " <text>SQL Instanz $($sqlInstanz) not found or access denied</text>"
     Write-Output "</prtg>"
     Exit
-    }
+}
 
 
-
+#Region: Filter
 
 #hardcoded list that applies to all hosts
-$IgnoreScript = '^(Test-SQL-123|Test-SQL-12345|tempdb)$' 
+$ExcludeScript = '' #Example: $ExcludeScript = '^(Test-SQL-123|Test-SQL-12345)$'
+$IncludeScript = ''
 
-
-#Remove Ignored
-if ($IgnorePattern -ne "") {
-    $databases = $databases | Where-Object {$_.Name -notmatch $IgnorePattern}  
+if ($ExcludeDB -ne "") {
+    $databases = $databases | Where-Object { $_.Name -notmatch $ExcludeDB }
 }
 
-if ($IgnoreScript -ne "") {
-    $databases = $databases | Where-Object {$_.Name -notmatch $IgnoreScript}  
+if ($ExcludeScript -ne "") {
+    $databases = $databases | Where-Object { $_.Name -notmatch $ExcludeScript }
 }
+
+if ($IncludeDB -ne "") {
+    $databases = $databases | Where-Object { $_.Name -match $IncludeDB }
+}
+
+if ($IncludeScript -ne "") {
+    $databases = $databases | Where-Object { $_.Name -match $IncludeScript }
+}
+
+#End Region Filter
+
 
 
 #Database(s) found?
-if(($databases -eq 0) -or ($null -eq $databases))
-    {
+if (($databases -eq 0) -or ($null -eq $databases)) {
     Write-Output "<prtg>"
     Write-Output " <error>1</error>"
     Write-Output " <text>No Databases found</text>"
     Write-Output "</prtg>"
     Exit
-    }
+}
 
 $RecoveryModelSimple = 0
 $RecoveryModelFull = 0
@@ -208,108 +212,90 @@ $Log_Text = ""
 
 $CurrentTime = Get-Date
 
-foreach($database in $databases)
-    {
+foreach ($database in $databases) {
     #Region: Backup
-    if($BackupAge)
-        {
-        $Time = [math]::Round((($CurrentTime - $database.LastBackupDate).TotalHours),2)
+    if ($BackupAge) {
+        $Time = [math]::Round((($CurrentTime - $database.LastBackupDate).TotalHours), 2)
         $TimeOutput = $database.LastBackupDate.ToString("dd.MM.yyyy-HH:mm")
-        if($database.LastBackupDate -eq (Get-Date(0)))
-            {
+        if ($database.LastBackupDate -eq (Get-Date(0))) {
             $Backup_Error += 1
             $Backup_Text += "$($database.Name) never backed up; "
-            }
-        elseif($Time -gt $BackupAgeError)
-            {
+        }
+        elseif ($Time -gt $BackupAgeError) {
             $Backup_Error += 1
             $Backup_Text += "$($database.Name) $($TimeOutput); "
             #$Backup_Text += "$($database.Name) $($Time)h ago; "
-            }
-        elseif($Time -gt $BackupAgeWarning)
-            {
+        }
+        elseif ($Time -gt $BackupAgeWarning) {
             $Backup_Warning += 1
             $Backup_Text += "$($database.Name) $($TimeOutput); "
             #$Backup_Text += "$($database.Name) $($Time)h ago; "
-            }
-        else
-            {
-            $Backup_Ok += 1
-            }
         }
+        else {
+            $Backup_Ok += 1
+        }
+    }
     #End Region
 
-    #Region: differential Backup       
-    if($DifferentialAge)
-        {
-        $Time = [math]::Round((($CurrentTime - $database.LastDifferentialBackupDate).TotalHours),2)
+    #Region: differential Backup
+    if ($DifferentialAge) {
+        $Time = [math]::Round((($CurrentTime - $database.LastDifferentialBackupDate).TotalHours), 2)
         $TimeOutput = $database.LastDifferentialBackupDate.ToString("dd.MM.yyyy-HH:mm")
-        if($database.LastDifferentialBackupDate -eq (Get-Date(0)))
-            {
+        if ($database.LastDifferentialBackupDate -eq (Get-Date(0))) {
             $Diff_Error += 1
             $Diff_Text += "$($database.Name) never backed up; "
-            }
-        elseif($Time -gt $DiffAgeError)
-            {
+        }
+        elseif ($Time -gt $DiffAgeError) {
             $Diff_Error += 1
             $Diff_Text += "$($database.Name) $($TimeOutput); "
             #$Diff_Text += "$($database.Name) $($Time)h ago; "
-            }
-        elseif($Time -gt $DiffAgeWarning)
-            {
+        }
+        elseif ($Time -gt $DiffAgeWarning) {
             $Diff_Warning += 1
             $Diff_Text += "$($database.Name) $($TimeOutput); "
             #$Diff_Text += "$($database.Name) $($Time)h ago; "
-            }
-        else
-            {
-            $Diff_Ok += 1
-            }
         }
+        else {
+            $Diff_Ok += 1
+        }
+    }
     #End Region
 
     #Check Recovery Model
-    if($database.RecoveryModel -eq "Simple")
-        {
+    if ($database.RecoveryModel -eq "Simple") {
         $RecoveryModelSimple += 1
-        }
+    }
 
     #If Full, then check Backups
-    if($database.RecoveryModel -eq "Full")
-        {
+    if ($database.RecoveryModel -eq "Full") {
         $RecoveryModelFull += 1
-                
+
         #Region: Log Backup
-        if($LogAge)
-            {
-            $Time = [math]::Round((($CurrentTime - $database.LastLogBackupDate).TotalHours),2)
+        if ($LogAge) {
+            $Time = [math]::Round((($CurrentTime - $database.LastLogBackupDate).TotalHours), 2)
             $TimeOutput = $database.LastLogBackupDate.ToString("dd.MM.yyyy-HH:mm")
-            if($database.LastLogBackupDate -eq (Get-Date(0)))
-                {
+            if ($database.LastLogBackupDate -eq (Get-Date(0))) {
                 $Log_Error += 1
                 $Log_Text += "$($database.Name) never backed up; "
-                }
-            elseif($Time -gt $LogAgeError)
-                {
+            }
+            elseif ($Time -gt $LogAgeError) {
                 $Log_Error += 1
                 $Log_Text += "$($database.Name) $($TimeOutput); "
                 #$Log_Text += "$($database.Name) $($Time)h ago; "
-                }
-            elseif($Time -gt $LogAgeWarning)
-                {
+            }
+            elseif ($Time -gt $LogAgeWarning) {
                 $Log_Warning += 1
                 $Log_Text += "$($database.Name) $($TimeOutput); "
                 #$Log_Text += "$($database.Name) $($Time)h ago; "
-                }
-            else
-                {
-                $Log_Ok += 1
-                }
             }
+            else {
+                $Log_Ok += 1
+            }
+        }
         #End Region
 
-        }
     }
+}
 
 #Region: disconnect SQL Server
 $server.ConnectionContext.Disconnect()
@@ -321,52 +307,43 @@ $xmlOutput = '<prtg>'
 #Region: Output Text
 
 #Text no Warnings or Errors
-if(($Backup_Error -eq 0) -and ($Diff_Error -eq 0) -and ($Log_Error -eq 0) -and ($Backup_Warning -eq 0) -and ($Diff_Warning -eq 0) -and ($Log_Warning -eq 0))
-    {
+if (($Backup_Error -eq 0) -and ($Diff_Error -eq 0) -and ($Log_Error -eq 0) -and ($Backup_Warning -eq 0) -and ($Diff_Warning -eq 0) -and ($Log_Warning -eq 0)) {
     $Ok_Text = "all Backups Ok; "
 
-    if($BackupAge)
-        {
+    if ($BackupAge) {
         $Ok_Text += "no Backups older $($BackupAgeWarning)h (Warning) or $($BackupAgeError)h (Error); "
-        }
-    if($LogAge)
-        {
+    }
+    if ($LogAge) {
         $Ok_Text += "no Log Backups older $($LogAgeWarning)h (Warning) or $($LogAgeError)h (Error); "
-        }
-    if($DiffAge)
-        {
+    }
+    if ($DiffAge) {
         $Ok_Text += "no Diff Backups older $($DiffAgeWarning)h (Warning) or $($DiffAgeError)h (Error); "
-        }
+    }
 
     $xmlOutput = $xmlOutput + "<text>$Ok_Text</text>"
-    }
+}
 
 #Text for Warnings and Errors
-else
-    {
+else {
     $ErrorText = ""
-    if($Backup_Text -ne "")
-        {
+    if ($Backup_Text -ne "") {
         $ErrorText += "Backup: $($Backup_Text) ### "
-        }
+    }
 
-    if($Diff_Text -ne "")
-        {
+    if ($Diff_Text -ne "") {
         $ErrorText += "Diff Backup: $($Diff_Text) ### "
-        }
+    }
 
-    if($Log_Text -ne "")
-        {
+    if ($Log_Text -ne "") {
         $ErrorText += "Log Backup: $($Log_Text)"
-        }
+    }
 
     $xmlOutput = $xmlOutput + "<text>$ErrorText</text>"
-    }
+}
 #End Region
 
 #Region Output Channel
-if($BackupAge)
-    {
+if ($BackupAge) {
     $xmlOutput = $xmlOutput + "<result>
         <channel>Backups Ok</channel>
         <value>$Backup_Ok</value>
@@ -386,10 +363,9 @@ if($BackupAge)
         <limitmode>1</limitmode>
         <LimitMaxError>0</LimitMaxError>
         </result>"
-    }
+}
 
-if($DiffAge)
-    {
+if ($DiffAge) {
     $xmlOutput = $xmlOutput + "<result>
         <channel>Diff Backups Ok</channel>
         <value>$Diff_Ok</value>
@@ -409,10 +385,9 @@ if($DiffAge)
         <limitmode>1</limitmode>
         <LimitMaxError>0</LimitMaxError>
         </result>"
-    }  
-    
-if($LogAge)
-    {
+}
+
+if ($LogAge) {
     $xmlOutput = $xmlOutput + "<result>
         <channel>Log Backup Ok</channel>
         <value>$Log_Ok</value>
@@ -432,7 +407,7 @@ if($LogAge)
         <limitmode>1</limitmode>
         <LimitMaxError>0</LimitMaxError>
         </result>"
-    }
+}
 
 $xmlOutput = $xmlOutput + "<result>
         <channel>Recovery Mode Simple DBs</channel>
@@ -447,14 +422,12 @@ $xmlOutput = $xmlOutput + "<result>
 
 $xmlOutput = $xmlOutput + "</prtg>"
 
-try
-    {
+try {
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
     [Console]::WriteLine($xmlOutput)
     #https://kb.paessler.com/en/topic/64817-how-can-i-show-special-characters-with-exe-script-sensors
-    }
+}
 
-catch
-    {
+catch {
     $xmlOutput
-    }
+}
