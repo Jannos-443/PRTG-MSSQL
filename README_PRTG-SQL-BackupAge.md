@@ -39,37 +39,65 @@ Checks SQL Backup, Log Backup and Differential Backup Age for every database!
    | Settings | Value |
    | --- | --- |
    | EXE/Script Advanced | PRTG-SQL-BackupAge.ps1 |
-   | Parameters | `-sqlInstanz "SQL-Test" -IgnorePattern '(SQL-ABC)'` |
+   | Parameters | `-sqlInstance "SQL-Test" -IgnorePattern '(SQL-ABC)'` |
    | Scanning Interval | 10 minutes |
 
-
-5. Set the "$IgnorePattern" or "$IgnoreScript" parameter to exclude databases
-
-
+5. Set the include/exclude parameter if required
 
 ## Examples
-SQL Backup Log Monitoring : `-sqlInstanz "SQL-Test" -LogAge`
+
+Run as Windows User
+```powershell
+... -sqlInstance "SQL-Test"
+```
+
+Explicit User and Password
+```powershell
+... -sqlInstance "SQL-Test" -username 'YourUser' -password 'YourPassword'
+```
+
+Named SQL Istance
+```powershell
+... -sqlInstance "SQL-Server01.example.com\InstanceTest"
+```
+
+Monitor SQL Database Backup
+```powershell
+... -sqlInstance "SQL-Test" -BackupAge
+```
+
+Monitor SQL Log Backup
+```powershell
+... -sqlInstance "SQL-Test" -LogAge
+```
+
+Monitor SQL Database Backup and SQL Log Backup
+```powershell
+... -sqlInstance "SQL-Test" -LogAge -BackupAge
+```
+
+Exclude Databases starting with Test_
+```powershell
+... -sqlInstance "SQL-Test" -LogAge -BackupAge -ExcludeDB '^(Test_.*)$'
+```
+
+Change Warning and Error Limit for Log Backup (5h Warning and 7h Error)
+```powershell
+... -sqlInstance "SQL-Test" -LogAge -BackupAge -LogAgeWarning '5' -LogAgeError '7'
+```
+
+
+## Screenshots
 
 ![PRTG-MSSQL](media/BackupAge_log.png)
 
-SQL Backup Log Monitoring : `-sqlInstanz "SQL-Test" -LogAge -BackupAge`
-
 ![PRTG-MSSQL](media/BackupAge_backup_and_log.png)
-
-Error:
 
 ![PRTG-MSSQL](media/BackupAge_error.png)
 
+## Exceptions
 
-database exceptions
-------------------
-You can either use the **parameter $IgnorePattern** to exclude a database on sensor basis, or set the **variable $IgnoreScript** within the script. Both variables take a regular expression as input to provide maximum flexibility. These regexes are then evaluated againt the **Database Name**
-
-By default, the $IgnoreScript varialbe looks like this:
-
-```powershell
-$IgnoreScript = '^(Test-SQL-123|Test-SQL-12345.*)$'
-```
+You can either use the **parameter $IncludeDB/ExcludeDB** to exclude/include a database on sensor basis, or set the **variable $ExcludeScript/$IncludeScript** within the script. Both variables take a regular expression as input to provide maximum flexibility. These regexes are then evaluated againt the **Database Name**
 
 For more information about regular expressions in PowerShell, visit [Microsoft Docs](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_regular_expressions).
 

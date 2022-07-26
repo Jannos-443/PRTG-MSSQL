@@ -3,15 +3,13 @@
     Checks SQL Database Size, Space Available and used Space
 
     .DESCRIPTION
-    Using Powershell to check the SQL Database Size, Space Available and Used Space from every Database in a specific SQL Instanz
-    Exceptions can be made within this script by changing the variable $IgnoreScript. This way, the change applies to all PRTG sensors
-    based on this script. If exceptions have to be made on a per sensor level, the script parameter $IgnorePattern can be used.
+    Using Powershell to check the SQL Database Size, Space Available and Used Space from every Database in a specific SQL Instance
 
     Copy this script to the PRTG probe EXEXML scripts folder (${env:ProgramFiles(x86)}\PRTG Network Monitor\Custom Sensors\EXEXML)
     and create a "EXE/Script Advanced" sensor. Choose this script from the dropdown and set at least:
 
-    .PARAMETER sqlInstanz
-    FQDN or IP of the SQL Instanz
+    .PARAMETER sqlInstance
+    FQDN or IP of the SQL Instance
 
     .PARAMETER username (if not specified Windows Auth is used)
     SQL Auth Username
@@ -51,7 +49,7 @@
 
     .EXAMPLE
     Sample call from PRTG EXE/Script Advanced
-    PRTG-SQL-DatabaseSize.ps1 -sqlInstanz "SQL-Test" -ExcludeDB '(Test123SQL|SQL-ABC)' -ShowDatabase
+    PRTG-SQL-DatabaseSize.ps1 -sqlInstance "SQL-Test" -ExcludeDB '(Test123SQL|SQL-ABC)' -ShowDatabase
 
     Author:  Jannos-443
     https://github.com/Jannos-443/PRTG-MSSQL
@@ -60,7 +58,7 @@
     https://docs.microsoft.com/en-us/sql/powershell/download-sql-server-ps-module?view=sql-server-ver15
 #>
 param(
-    [string]$sqlInstanz = '',
+    [string]$sqlInstance = '',
     [string]$username = '',
     [string]$password = '',
     [string]$IncludeDB = '',
@@ -93,10 +91,10 @@ trap {
 }
 
 #Target specified?
-if ($sqlInstanz -eq "") {
+if ($sqlInstance -eq "") {
     Write-Output "<prtg>"
     Write-Output "<error>1</error>"
-    Write-Output "<text>No SQLInstanz specified</text>"
+    Write-Output "<text>No SQLInstance specified</text>"
     Write-Output "</prtg>"
     Exit
 }
@@ -127,7 +125,7 @@ Try {
     #SQL Auth
     if (($username -ne "") -and ($password -ne "")) {
         $SrvConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
-        $SrvConn.ServerInstance = $sqlInstanz
+        $SrvConn.ServerInstance = $sqlInstance
         $SrvConn.LoginSecure = $false
         $SrvConn.Login = $username
         $SrvConn.Password = $password
@@ -135,7 +133,7 @@ Try {
     }
     #Windows Auth (running User)
     else {
-        $server = new-object "Microsoft.SqlServer.Management.Smo.Server" $sqlInstanz
+        $server = new-object "Microsoft.SqlServer.Management.Smo.Server" $sqlInstance
     }
 
     #Get Databases
@@ -145,7 +143,7 @@ Try {
 catch {
     Write-Output "<prtg>"
     Write-Output " <error>1</error>"
-    Write-Output " <text>SQL Instanz $($sqlInstanz) not found or access denied</text>"
+    Write-Output " <text>SQL Instance $($sqlInstance) not found or access denied</text>"
     Write-Output "</prtg>"
     Exit
 }

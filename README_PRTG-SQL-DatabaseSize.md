@@ -34,43 +34,73 @@ space available and used space (percent) is only shown if an maxlimit is set.
    | Settings | Value |
    | --- | --- |
    | EXE/Script Advanced | PRTG-SQL-DatabaseSize.ps1 |
-   | Parameters | `-sqlInstanz "SQL-Test" -IgnorePattern '(SQL-ABC)'` |
+   | Parameters | `-sqlInstance "SQL-Test"` |
    | Scanning Interval | 10 minutes |
 
 
-5. Set the "$IgnorePattern" or "$IgnoreScript" parameter to exclude databases
+5. Set the include/exclude parameter if required
 
 6. Use "-HideSize", "-HideUsedSpace" or "-HideFreeSpace" if you want to hide something.
 
 
 
 ## Examples
-Size for each mdf & ndf: `-sqlInstanz "SQL-Test" -ShowFile`
+
+Run as Windows User
+```powershell
+... -sqlInstance "SQL-Test"
+```
+
+Explicit User and Password
+```powershell
+... -sqlInstance "SQL-Test" -username 'YourUser' -password 'YourPassword'
+```
+
+Named SQL Istance
+```powershell
+... -sqlInstance "SQL-Server01.example.com\InstanceTest"
+```
+
+Size for each mdf & ndf file
+```powershell
+... -sqlInstance "SQL-Test" -ShowFile
+```
+
+
+Size for each Logfile
+```powershell
+... -sqlInstance "SQL-Test" -ShowLog
+```
+
+
+Full Database Size:
+```powershell
+... -sqlInstance "SQL-Test" -ShowDatabase
+```
+
+Summed up Files for each DB
+```powershell
+... -sqlInstance "SQL-Test" -ShowFile -IncludeSum
+```
+
+Exclude Databases starting with Test_
+```powershell
+... -sqlInstance "SQL-Test" -ShowDatabase -ExcludeDB '^(Test_.*)$'
+```
+
+## Screenshots
 
 ![PRTG-MSSQL](media/size_file.png)
 
-Size for each Logfile: `-sqlInstanz "SQL-Test" -ShowLog`
-
 ![PRTG-MSSQL](media/size_log.png)
-
-Full Database Size: `-sqlInstanz "SQL-Test" -ShowDatabase`
 
 ![PRTG-MSSQL](media/size_db.png)
 
-Summed up DB Files for each: `-sqlInstanz "SQL-Test" -ShowFile -IncludeSum`
 ![PRTG-MSSQL](media/size_sum.png)
 
-Summed Up DB File Sum for the DB "Test123": `-sqlInstanz "SQL-Test" -ShowFile -IncludeSum -IncludePattern '^(Test123)$'`
+## Exceptions
 
-exceptions
-------------------
-You can either use the **parameter $IgnorePattern** to exclude a database on sensor basis, or set the **variable $IgnoreScript** within the script. Both variables take a regular expression as input to provide maximum flexibility. These regexes are then evaluated againt the **Database Name**
-
-By default, the $IgnoreScript varialbe looks like this:
-
-```powershell
-$IgnoreScript = '^(Test-SQL-123|Test-SQL-12345.*)$'
-```
+You can either use the **parameter $IncludeDB/ExcludeDB** to exclude/include a database on sensor basis, or set the **variable $ExcludeScript/$IncludeScript** within the script. Both variables take a regular expression as input to provide maximum flexibility. These regexes are then evaluated againt the **Database Name**
 
 For more information about regular expressions in PowerShell, visit [Microsoft Docs](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_regular_expressions).
 
