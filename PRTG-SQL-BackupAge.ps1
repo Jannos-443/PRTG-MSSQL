@@ -58,7 +58,7 @@
     PRTG-SQL-BackupAge.ps1 -sqlInstanz "SQL-Test" -BackupAgeWarning 56 -BackupAgeError 58 -ExcludeDB '(Test123SQL|SQL-ABC)'
 
     Author:  Jannos-443
-    https://github.com/Jannos-443/PRTG-SQL-BackupAge
+    https://github.com/Jannos-443/PRTG-MSSQL
 
     SQLServer Powershell Module
     https://docs.microsoft.com/en-us/sql/powershell/download-sql-server-ps-module?view=sql-server-ver15

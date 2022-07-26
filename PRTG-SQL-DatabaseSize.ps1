@@ -54,7 +54,7 @@
     PRTG-SQL-DatabaseSize.ps1 -sqlInstanz "SQL-Test" -ExcludeDB '(Test123SQL|SQL-ABC)' -ShowDatabase
 
     Author:  Jannos-443
-    https://github.com/Jannos-443/PRTG-SQL-DatabaseSize
+    https://github.com/Jannos-443/PRTG-MSSQL
 
     SQLServer Powershell Module
     https://docs.microsoft.com/en-us/sql/powershell/download-sql-server-ps-module?view=sql-server-ver15

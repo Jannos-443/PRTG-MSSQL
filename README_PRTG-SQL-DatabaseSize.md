@@ -10,6 +10,7 @@ Jannos-443
 Checks SQL database size, space available and used space for every database!
 
 space available and used space (percent) is only shown if an maxlimit is set.
+
 ![PRTG-MSSQL](media/size_limit.png)
 
 
